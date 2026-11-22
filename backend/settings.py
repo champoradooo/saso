@@ -74,12 +74,38 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "backend.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# SQLite locally; set DATABASE_URL for Supabase / Postgres (Render)
+_database_url = os.environ.get("DATABASE_URL", "").strip()
+
+if _database_url:
+    import urllib.parse as _urlparse
+
+    _url = _urlparse.urlparse(_database_url)
+    # Supabase pooler / Postgres often need SSL
+    _db_name = _url.path.lstrip("/") or "postgres"
+    _query = dict(_urlparse.parse_qsl(_url.query))
+    _sslmode = _query.get("sslmode", "require")
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": _db_name,
+            "USER": _urlparse.unquote(_url.username or ""),
+            "PASSWORD": _urlparse.unquote(_url.password or ""),
+            "HOST": _url.hostname or "",
+            "PORT": str(_url.port or 5432),
+            "OPTIONS": {
+                "sslmode": _sslmode,
+            },
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
