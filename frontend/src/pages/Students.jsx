@@ -38,6 +38,7 @@ import {
   Search,
   Plus,
   Eye,
+  Pencil,
   Users,
   CheckCircle2,
   Clock,
@@ -1666,6 +1667,9 @@ export default function Students() {
   const [showAdd, setShowAdd] =
     useState(false)
 
+  const [editingStudent, setEditingStudent] =
+    useState(null)
+
   const [showImport, setShowImport] =
     useState(false)
 
@@ -2824,6 +2828,31 @@ export default function Students() {
                             </Button>
 
 
+                            {/* EDIT */}
+
+                            {tab !==
+                              'archived' && (
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 gap-1 text-xs"
+                                onClick={() =>
+                                  setEditingStudent(
+                                    student
+                                  )
+                                }
+                              >
+
+                                <Pencil className="w-3.5 h-3.5" />
+
+                                Edit
+
+                              </Button>
+
+                            )}
+
+
                             {/* ARCHIVE */}
 
                             {tab !==
@@ -3046,18 +3075,22 @@ export default function Students() {
 
 
       {/* ===================================================
-          ADD MODAL
+          ADD / EDIT MODAL
       =================================================== */}
 
-      {showAdd && (
+      {(showAdd || editingStudent) && (
 
         <StudentFormModal
-          onClose={() =>
+          student={editingStudent}
+          onClose={() => {
             setShowAdd(false)
-          }
-
-          onSaved={load}
-
+            setEditingStudent(null)
+          }}
+          onSaved={() => {
+            setShowAdd(false)
+            setEditingStudent(null)
+            load()
+          }}
         />
 
       )}
