@@ -943,12 +943,12 @@ function ActivityCard({
         }
 
       }}
-      className="flex gap-4 p-4 rounded-xl border border-border/60 bg-card hover:bg-muted/30 hover:shadow-sm transition-all cursor-pointer"
+      className="flex gap-5 p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 hover:shadow-sm transition-all cursor-pointer"
     >
 
-      <div className="shrink-0 w-12 h-fit rounded-xl text-center py-2 bg-primary/10 text-primary">
+      <div className="shrink-0 w-14 h-fit rounded-xl text-center py-2.5 bg-primary/10 text-primary">
 
-        <p className="text-[10px] font-bold uppercase">
+        <p className="text-xs font-bold uppercase">
 
           {validDate
             ? date.toLocaleDateString(
@@ -961,7 +961,7 @@ function ActivityCard({
 
         </p>
 
-        <p className="text-xl font-bold leading-tight">
+        <p className="text-2xl font-bold leading-tight">
 
           {validDate
             ? date.getDate()
@@ -978,7 +978,7 @@ function ActivityCard({
 
           <p
             className={
-              'font-semibold text-sm ' +
+              'font-semibold text-base ' +
               (
                 isCancelled
                   ? 'text-muted-foreground line-through decoration-muted-foreground/50'
@@ -2992,13 +2992,13 @@ function ArchivedActivityDetailsModal({
       onOpenChange={onClose}
     >
 
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[92vh] w-[min(96vw,48rem)] max-w-[calc(100%-2rem)] gap-5 overflow-y-auto p-6 sm:max-w-3xl">
 
         <DialogHeader>
 
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-xl">
 
-            <Archive className="w-5 h-5" />
+            <Archive className="w-6 h-6" />
 
             Archived Activity
 
@@ -3281,11 +3281,15 @@ function AttendanceModal({
 
   const load =
     useCallback(
-      async () => {
+      async ({
+        silent = false
+      } = {}) => {
 
-        setLoading(true)
-        setError('')
-        setMessage('')
+        if (!silent) {
+          setLoading(true)
+          setError('')
+          setMessage('')
+        }
 
         try {
 
@@ -3333,9 +3337,36 @@ function AttendanceModal({
 
         } finally {
 
-          setLoading(false)
+          if (!silent) {
+            setLoading(false)
+          }
 
         }
+
+      },
+      [activity.id]
+    )
+
+
+  const refreshRoster =
+    useCallback(
+      async () => {
+
+        const activityData =
+          await api.get(
+            '/activities/activities/' +
+            activity.id +
+            '/'
+          )
+
+        setActivityDetails(
+          activityData
+        )
+
+        setRoster(
+          activityData.participations ??
+          []
+        )
 
       },
       [activity.id]
@@ -3552,10 +3583,55 @@ function AttendanceModal({
         existing?.attendance_status ===
         'present'
 
+      const previousRoster = roster
+
       setSavingId(
         student.student_id
       )
       setError('')
+
+      // Optimistic UI — avoid full reload flicker
+      if (isPresent && existing) {
+        setRoster(current =>
+          current.filter(
+            row =>
+              row.id !== existing.id
+          )
+        )
+      } else if (existing) {
+        setRoster(current =>
+          current.map(row =>
+            row.id === existing.id
+              ? {
+                  ...row,
+                  attendance_status:
+                    'present'
+                }
+              : row
+          )
+        )
+      } else {
+        setRoster(current => [
+          ...current,
+          {
+            id: `temp-${student.student_id}`,
+            attendance_status:
+              'present',
+            student:
+              student.id,
+            student_detail: {
+              student_id:
+                student.student_id,
+              first_name:
+                student.first_name,
+              last_name:
+                student.last_name,
+              course:
+                student.course
+            }
+          }
+        ])
+      }
 
       try {
 
@@ -3602,9 +3678,11 @@ function AttendanceModal({
         }
 
 
-        await load()
+        await refreshRoster()
 
       } catch (err) {
+
+        setRoster(previousRoster)
 
         setError(
           err?.message ||
@@ -3632,6 +3710,64 @@ function AttendanceModal({
       setSavingId('bulk')
       setError('')
       setMessage('')
+
+      const previousRoster = roster
+
+      setRoster(current => {
+        const byStudentId =
+          new Map(
+            current.map(row => [
+              row.student_detail
+                ?.student_id,
+              row
+            ])
+          )
+
+        filteredStudents.forEach(
+          student => {
+            const existing =
+              byStudentId.get(
+                student.student_id
+              )
+
+            if (existing) {
+              byStudentId.set(
+                student.student_id,
+                {
+                  ...existing,
+                  attendance_status:
+                    'present'
+                }
+              )
+            } else {
+              byStudentId.set(
+                student.student_id,
+                {
+                  id: `temp-${student.student_id}`,
+                  attendance_status:
+                    'present',
+                  student:
+                    student.id,
+                  student_detail: {
+                    student_id:
+                      student.student_id,
+                    first_name:
+                      student.first_name,
+                    last_name:
+                      student.last_name,
+                    course:
+                      student.course
+                  }
+                }
+              )
+            }
+          }
+        )
+
+        return Array.from(
+          byStudentId.values()
+        )
+      })
 
       try {
 
@@ -3664,7 +3800,7 @@ function AttendanceModal({
           )
 
 
-        await load()
+        await refreshRoster()
 
 
         setMessage(
@@ -3677,6 +3813,8 @@ function AttendanceModal({
         )
 
       } catch (err) {
+
+        setRoster(previousRoster)
 
         setError(
           err?.message ||
@@ -3711,6 +3849,9 @@ function AttendanceModal({
       setError('')
       setMessage('')
 
+      const previousRoster = roster
+      setRoster([])
+
       try {
 
         const result =
@@ -3723,7 +3864,7 @@ function AttendanceModal({
           )
 
 
-        await load()
+        await refreshRoster()
 
 
         setMessage(
@@ -3733,6 +3874,8 @@ function AttendanceModal({
         )
 
       } catch (err) {
+
+        setRoster(previousRoster)
 
         setError(
           err?.message ||
@@ -4034,16 +4177,11 @@ function AttendanceModal({
                         }
                         disabled={busy}
                         className={
-                          'flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ' +
+                          'flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors ' +
                           (
                             isPresent
                               ? 'border-emerald-200 bg-emerald-50/70'
                               : 'hover:bg-muted/40'
-                          ) +
-                          (
-                            busy
-                              ? ' opacity-60'
-                              : ''
                           )
                         }
                       >
@@ -4147,13 +4285,13 @@ function DateActivitiesModal({
       onOpenChange={onClose}
     >
 
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[92vh] w-[min(96vw,52rem)] max-w-[calc(100%-2rem)] gap-5 overflow-y-auto p-6 sm:max-w-4xl">
 
         <DialogHeader>
 
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-xl">
 
-            <CalendarDays className="w-5 h-5 text-primary" />
+            <CalendarDays className="w-6 h-6 text-primary" />
 
             {date.toLocaleDateString(
               'en-PH',
@@ -4170,15 +4308,15 @@ function DateActivitiesModal({
         </DialogHeader>
 
 
-        <div className="space-y-3">
+        <div className="space-y-4">
 
           {activities.length === 0 ? (
 
-            <div className="rounded-xl border border-dashed p-8 text-center">
+            <div className="rounded-2xl border border-dashed p-10 text-center">
 
-              <CalendarDays className="w-8 h-8 mx-auto mb-3 text-muted-foreground/50" />
+              <CalendarDays className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
 
-              <p className="text-sm font-medium">
+              <p className="text-base font-medium">
                 No activities scheduled
               </p>
 
@@ -4191,19 +4329,19 @@ function DateActivitiesModal({
 
                 <div
                   key={activity.id}
-                  className="rounded-xl border p-4 space-y-3"
+                  className="rounded-2xl border p-6 space-y-4"
                 >
 
                   <div>
 
-                    <h3 className="font-semibold">
+                    <h3 className="text-xl font-semibold">
                       {activity.title}
                     </h3>
 
                     {activity.status ===
                       'cancelled' && (
 
-                      <span className="inline-block mt-1 rounded-full bg-rose-100 text-rose-700 px-2 py-0.5 text-[10px] font-semibold">
+                      <span className="inline-block mt-2 rounded-full bg-rose-100 text-rose-700 px-2.5 py-1 text-xs font-semibold">
                         Cancelled
                       </span>
 
@@ -4212,15 +4350,15 @@ function DateActivitiesModal({
                   </div>
 
 
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2.5 text-base">
 
                     {getTimeRange(
                       activity
                     ) && (
 
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2.5">
 
-                        <Clock3 className="w-4 h-4 text-primary" />
+                        <Clock3 className="w-5 h-5 shrink-0 text-primary" />
 
                         {getTimeRange(
                           activity
@@ -4233,9 +4371,9 @@ function DateActivitiesModal({
 
                     {activity.location && (
 
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2.5">
 
-                        <MapPin className="w-4 h-4 text-primary" />
+                        <MapPin className="w-5 h-5 shrink-0 text-primary" />
 
                         {activity.location}
 
@@ -4246,9 +4384,9 @@ function DateActivitiesModal({
 
                     {activity.organizer && (
 
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2.5">
 
-                        <User className="w-4 h-4 text-primary" />
+                        <User className="w-5 h-5 shrink-0 text-primary" />
 
                         {activity.organizer}
 
@@ -4259,9 +4397,9 @@ function DateActivitiesModal({
 
                     {activity.event_type && (
 
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2.5">
 
-                        <CalendarDays className="w-4 h-4 text-primary" />
+                        <CalendarDays className="w-5 h-5 shrink-0 text-primary" />
 
                         {activity.event_type}
 
@@ -4274,7 +4412,7 @@ function DateActivitiesModal({
 
                   {activity.description && (
 
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base leading-relaxed text-muted-foreground">
                       {activity.description}
                     </p>
 
@@ -4288,12 +4426,11 @@ function DateActivitiesModal({
                   />
 
 
-                  <div className="flex justify-end gap-2 pt-2 border-t">
+                  <div className="flex justify-end gap-3 pt-3 border-t">
 
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
                       onClick={() =>
                         onEdit(
                           activity
@@ -4301,7 +4438,7 @@ function DateActivitiesModal({
                       }
                     >
 
-                      <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                      <Pencil className="w-4 h-4 mr-2" />
 
                       Edit
 
@@ -4310,7 +4447,6 @@ function DateActivitiesModal({
 
                     <Button
                       type="button"
-                      size="sm"
                       onClick={() =>
                         onAttendance(
                           activity
@@ -4318,7 +4454,7 @@ function DateActivitiesModal({
                       }
                     >
 
-                      <Users className="w-3.5 h-3.5 mr-1.5" />
+                      <Users className="w-4 h-4 mr-2" />
 
                       Attendance
 
