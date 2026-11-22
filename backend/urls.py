@@ -18,13 +18,26 @@ def healthz(_request):
     return JsonResponse({"status": "ok"})
 
 
-def react_index(request):
+def react_index(request, path=""):
     """
-    Serve the React/Vite frontend.
+    Serve Vite public files from frontend/dist when they exist,
+    otherwise fall back to the SPA index.html.
+    """
+    # Serve real files from dist root (logos, favicon, background, etc.)
+    if path:
+        candidate = (DIST_DIR / path).resolve()
+        try:
+            candidate.relative_to(DIST_DIR.resolve())
+        except ValueError:
+            candidate = None
 
-    This is only used for frontend routes that are not handled
-    by Django's API, admin, media, static, or asset routes.
-    """
+        if candidate is not None and candidate.is_file():
+            return static_serve(
+                request,
+                path,
+                document_root=DIST_DIR,
+            )
+
     index = DIST_DIR / "index.html"
 
     if not index.exists():
@@ -111,7 +124,7 @@ if settings.DEBUG:
 # -------------------------------------------------------------------
 urlpatterns += [
     re_path(
-        r"^(?!api/|admin/|media/|static/|assets/).*?$",
+        r"^(?!api/|admin/|media/|static/|assets/)(?P<path>.*)$",
         react_index,
     ),
 ]
