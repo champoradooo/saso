@@ -948,7 +948,7 @@ function AddCaseModal({ onClose, onSaved }) {
     violation: "",
     description: "",
     severity: "minor",
-    status: "pending",
+    status: "under_review",
     sanction: "",
   });
 
@@ -1211,10 +1211,6 @@ function AddCaseModal({ onClose, onSaved }) {
               </SelectTrigger>
 
               <SelectContent>
-                <SelectItem value="pending">
-                  Pending
-                </SelectItem>
-
                 <SelectItem value="under_review">
                   Under Review
                 </SelectItem>
@@ -2390,6 +2386,10 @@ export default function Discipline() {
                       Status
                     </th>
 
+                    <th className="px-5 py-4 text-center text-sm font-semibold">
+                      Action
+                    </th>
+
                   </tr>
                 </thead>
 
@@ -2449,6 +2449,22 @@ export default function Discipline() {
                                 record.status
                               }
                             />
+                          </td>
+
+                          <td className="px-5 py-4 text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1.5 text-sm"
+                              onClick={() =>
+                                setEditingCase(
+                                  record
+                                )
+                              }
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Edit
+                            </Button>
                           </td>
 
                         </tr>
