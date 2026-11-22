@@ -361,25 +361,43 @@ class StudentViewSet(viewsets.ModelViewSet):
 
         first_row = rows[0]
 
-        normalized_headers = {
-            self._normalize_header(header): header
+        # Header presence check (aliases match row extraction)
+        present_keys = set(
+            self._normalize_header(header)
             for header in first_row.keys()
+            if header is not None and str(header).strip()
+        )
+
+        required_alias_map = {
+            "student_id": {
+                "student_id", "studentid", "student id",
+                "student_no", "student number", "id",
+            },
+            "first_name": {
+                "first_name", "firstname", "first name",
+                "given_name", "given name",
+            },
+            "last_name": {
+                "last_name", "lastname", "last name",
+                "surname", "family_name", "family name",
+            },
+            "course": {"course", "program", "degree"},
+            "year_level": {
+                "year_level", "year level", "year",
+            },
+            "address": {"address", "home address"},
         }
 
-        required_fields = [
-            "student_id",
-            "first_name",
-            "last_name",
-            "course",
-            "year_level",
-            "address",
-        ]
+        missing_fields = []
 
-        missing_fields = [
-            field
-            for field in required_fields
-            if field not in normalized_headers
-        ]
+        for field, aliases in required_alias_map.items():
+            has_header = any(
+                self._normalize_header(alias) in present_keys
+                for alias in aliases
+            )
+
+            if not has_header:
+                missing_fields.append(field)
 
         if missing_fields:
 

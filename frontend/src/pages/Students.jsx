@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { api } from '../api/client'
 
 import {
@@ -1261,6 +1261,8 @@ function ImportStudentsModal({
   onImported,
 }) {
 
+  const fileInputRef = useRef(null)
+
   const [file, setFile] =
     useState(null)
 
@@ -1427,8 +1429,16 @@ function ImportStudentsModal({
           'string'
       ) {
 
+        const missing =
+          Array.isArray(
+            backendData.missing_fields
+          ) &&
+          backendData.missing_fields.length > 0
+            ? `\nMissing columns: ${backendData.missing_fields.join(', ')}`
+            : ''
+
         setError(
-          backendData.detail
+          `${backendData.detail}${missing}`
         )
 
       } else {
@@ -1553,14 +1563,16 @@ function ImportStudentsModal({
 
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">
 
-              CSV File
+              CSV / Excel File
 
             </label>
 
 
-            <Input
+            <input
+              ref={fileInputRef}
               type="file"
-              accept=".csv,text/csv"
+              accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              className="sr-only"
               onChange={(e) => {
 
                 setFile(
@@ -1574,15 +1586,48 @@ function ImportStudentsModal({
             />
 
 
-            {file && (
+            <div className="flex flex-wrap items-center gap-2">
 
-              <p className="text-xs text-muted-foreground mt-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
 
-                {file.name}
+                  if (fileInputRef.current) {
+                    // Allow re-selecting the same file
+                    fileInputRef.current.value = ''
+                    fileInputRef.current.click()
+                  }
 
-              </p>
+                }}
+              >
 
-            )}
+                <Upload className="w-4 h-4 mr-2" />
+
+                {file
+                  ? 'Change File'
+                  : 'Choose File'}
+
+              </Button>
+
+
+              <span className="text-sm text-muted-foreground truncate max-w-[220px]">
+
+                {file
+                  ? file.name
+                  : 'No file selected'}
+
+              </span>
+
+            </div>
+
+
+            <p className="text-xs text-muted-foreground mt-2">
+
+              Use a students CSV/XLSX with the headers above
+              (not an unrelated file like orders.csv).
+
+            </p>
 
           </div>
 
