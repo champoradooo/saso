@@ -74,15 +74,26 @@ if DIST_DIR.exists():
 #
 # to be served as actual files instead of being sent to react_index().
 # -------------------------------------------------------------------
+# Serve media/static from this process (single-service Render deploy).
+# django.conf.urls.static.static() is no-op when DEBUG=False, so wire serve() directly.
+urlpatterns += [
+    re_path(
+        r"^media/(?P<path>.*)$",
+        static_serve,
+        {"document_root": settings.MEDIA_ROOT},
+    ),
+    re_path(
+        r"^static/(?P<path>.*)$",
+        static_serve,
+        {"document_root": settings.STATIC_ROOT},
+    ),
+]
+
 if settings.DEBUG:
+    # Keep Django helper available for local convenience / duplicate-safe paths
     urlpatterns += static(
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT,
-    )
-
-    urlpatterns += static(
-        settings.STATIC_URL,
-        document_root=settings.STATIC_ROOT,
     )
 
 
