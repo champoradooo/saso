@@ -2066,15 +2066,23 @@ export default function Students() {
 
       })
       .sort((a, b) => {
-        const dateA = a.archived_date
-          ? new Date(a.archived_date).getTime()
-          : 0
-        const dateB = b.archived_date
-          ? new Date(b.archived_date).getTime()
-          : 0
+        const toTime = (value) => {
+          if (!value) return 0
+          const raw = String(value).trim()
+          // Prefer date-only (YYYY-MM-DD) as local midnight
+          const normalized =
+            /^\d{4}-\d{2}-\d{2}$/.test(raw)
+              ? `${raw}T00:00:00`
+              : raw
+          const time = new Date(normalized).getTime()
+          return Number.isNaN(time) ? 0 : time
+        }
+
+        const dateA = toTime(a.archived_date)
+        const dateB = toTime(b.archived_date)
 
         if (dateB !== dateA) {
-          return dateB - dateA
+          return dateB - dateA // newest archived first
         }
 
         return Number(b.id) - Number(a.id)
@@ -2575,7 +2583,10 @@ export default function Students() {
                     'Status',
 
                     ...(tab === 'archived'
-                      ? ['Archive Reason']
+                      ? [
+                          'Archive Reason',
+                          'Archived Date',
+                        ]
                       : []),
 
                     'Action',
@@ -2613,7 +2624,7 @@ export default function Students() {
                     <td
                       colSpan={
                         tab === 'archived'
-                          ? 7
+                          ? 8
                           : 6
                       }
                       className="px-5 py-12 text-center text-muted-foreground text-sm"
@@ -2810,6 +2821,35 @@ export default function Students() {
                               }
 
                             </span>
+
+                          </td>
+
+                        )}
+
+
+                        {tab ===
+                          'archived' && (
+
+                          <td className="px-5 py-3.5 whitespace-nowrap text-muted-foreground">
+
+                            {student.archived_date
+                              ? new Date(
+                                  /^\d{4}-\d{2}-\d{2}$/.test(
+                                    String(
+                                      student.archived_date
+                                    )
+                                  )
+                                    ? `${student.archived_date}T00:00:00`
+                                    : student.archived_date
+                                ).toLocaleDateString(
+                                  'en-PH',
+                                  {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  }
+                                )
+                              : '—'}
 
                           </td>
 

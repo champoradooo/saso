@@ -831,6 +831,16 @@ export default function LostAndFound() {
 
       const data =
         normalizeRecords(response)
+          .slice()
+          .sort((a, b) => {
+            const timeA = new Date(
+              a.archived_at || a.date_filing || 0
+            ).getTime()
+            const timeB = new Date(
+              b.archived_at || b.date_filing || 0
+            ).getTime()
+            return timeB - timeA
+          })
 
       setHistoryRecords(data)
       setShowHistory(true)

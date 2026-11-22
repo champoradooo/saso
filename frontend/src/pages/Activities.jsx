@@ -2681,33 +2681,46 @@ function ArchivedHistoryModal({
           .trim()
           .toLowerCase()
 
+      const byDate = (list) =>
+        [...list].sort((a, b) => {
+          const timeA = new Date(
+            a.archived_at || a.event_date || 0
+          ).getTime()
+          const timeB = new Date(
+            b.archived_at || b.event_date || 0
+          ).getTime()
+          return timeB - timeA
+        })
+
       if (!term) {
-        return activities
+        return byDate(activities)
       }
 
-      return activities.filter(
-        activity => {
+      return byDate(
+        activities.filter(
+          activity => {
 
-          const text = [
-            activity.title,
-            activity.location,
-            activity.organizer,
-            activity.event_type,
-            activity.guest_speaker,
-            normalizeDepartments(
-              activity.departments
-            ),
-            activity.description
-          ]
-            .filter(Boolean)
-            .join(' ')
-            .toLowerCase()
+            const text = [
+              activity.title,
+              activity.location,
+              activity.organizer,
+              activity.event_type,
+              activity.guest_speaker,
+              normalizeDepartments(
+                activity.departments
+              ),
+              activity.description
+            ]
+              .filter(Boolean)
+              .join(' ')
+              .toLowerCase()
 
-          return text.includes(
-            term
-          )
+            return text.includes(
+              term
+            )
 
-        }
+          }
+        )
       )
 
     }, [
