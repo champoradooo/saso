@@ -779,6 +779,7 @@ function StudentFormModal({
               form={form}
               errors={errors}
               set={set}
+              disabled={isEditing}
             />
 
 
@@ -788,6 +789,7 @@ function StudentFormModal({
               form={form}
               errors={errors}
               set={set}
+              disabled={isEditing}
             />
 
 
@@ -798,6 +800,7 @@ function StudentFormModal({
               form={form}
               errors={errors}
               set={set}
+              disabled={isEditing}
             />
 
           </div>
@@ -955,6 +958,7 @@ function StudentFormModal({
             form={form}
             errors={errors}
             set={set}
+            disabled={isEditing}
           />
 
 

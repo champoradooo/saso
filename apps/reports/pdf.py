@@ -1,13 +1,15 @@
 """PDF generation helpers using ReportLab."""
 from io import BytesIO
 from datetime import date
+from pathlib import Path
+
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph,
-    Spacer, HRFlowable,
+    Spacer, HRFlowable, Image,
 )
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 
@@ -22,12 +24,34 @@ SEVERITY_COLOR = {'minor': colors.HexColor('#F59E0B'), 'moderate': colors.HexCol
 STATUS_COLOR   = {'pending': colors.HexColor('#F59E0B'), 'under_review': colors.HexColor('#3B82F6'), 'resolved': colors.HexColor('#10B981')}
 STATUS_LABEL   = {'pending': 'Pending', 'under_review': 'Under Review', 'resolved': 'Resolved'}
 
+# Usable content width on A4 with 1.5cm side margins
+CONTENT_WIDTH = A4[0] - 3 * cm
+
+_BASE_DIR = Path(__file__).resolve().parents[2]
+_LOGO_CANDIDATES = [
+    _BASE_DIR / "frontend" / "public",
+    _BASE_DIR / "frontend" / "dist",
+    _BASE_DIR / "static",
+]
+
+
+def _find_logo(filename):
+    for folder in _LOGO_CANDIDATES:
+        path = folder / filename
+        if path.exists():
+            return path
+    return None
+
+
+OCT_LOGO = _find_logo("oct-logo.png")
+SASO_LOGO = _find_logo("saso-logo.jpg") or _find_logo("saso-logo.png")
+
 
 def _base_doc(buffer, title):
     return SimpleDocTemplate(
         buffer, pagesize=A4,
-        leftMargin=2*cm, rightMargin=2*cm,
-        topMargin=2.5*cm, bottomMargin=2*cm,
+        leftMargin=1.5*cm, rightMargin=1.5*cm,
+        topMargin=1.5*cm, bottomMargin=1.5*cm,
         title=title,
     )
 
@@ -35,36 +59,163 @@ def _base_doc(buffer, title):
 def _styles():
     base = getSampleStyleSheet()
     return {
-        'title': ParagraphStyle('title', fontSize=16, textColor=OCT_GREEN, alignment=TA_CENTER, spaceAfter=2, fontName='Helvetica-Bold'),
-        'subtitle': ParagraphStyle('subtitle', fontSize=9, textColor=GRAY_MID, alignment=TA_CENTER, spaceAfter=4),
-        'section': ParagraphStyle('section', fontSize=10, textColor=OCT_GREEN, fontName='Helvetica-Bold', spaceBefore=12, spaceAfter=4),
-        'body': ParagraphStyle('body', fontSize=9, textColor=GRAY_DARK, spaceAfter=2),
-        'right': ParagraphStyle('right', fontSize=8, textColor=GRAY_MID, alignment=TA_RIGHT),
+        'title': ParagraphStyle(
+            'title',
+            fontSize=13,
+            leading=16,
+            textColor=OCT_GREEN,
+            alignment=TA_CENTER,
+            spaceAfter=2,
+            fontName='Helvetica-Bold',
+        ),
+        'subtitle': ParagraphStyle(
+            'subtitle',
+            fontSize=8,
+            leading=11,
+            textColor=GRAY_MID,
+            alignment=TA_CENTER,
+            spaceAfter=3,
+        ),
+        'section': ParagraphStyle(
+            'section',
+            fontSize=10,
+            leading=13,
+            textColor=OCT_GREEN,
+            fontName='Helvetica-Bold',
+            spaceBefore=12,
+            spaceAfter=4,
+        ),
+        'body': ParagraphStyle(
+            'body',
+            fontSize=9,
+            leading=12,
+            textColor=GRAY_DARK,
+            spaceAfter=2,
+        ),
+        'right': ParagraphStyle(
+            'right',
+            fontSize=8,
+            leading=10,
+            textColor=GRAY_MID,
+            alignment=TA_RIGHT,
+        ),
+        'cell': ParagraphStyle(
+            'cell',
+            fontSize=7,
+            leading=9,
+            textColor=GRAY_DARK,
+            alignment=TA_LEFT,
+        ),
+        'cell_center': ParagraphStyle(
+            'cell_center',
+            fontSize=7,
+            leading=9,
+            textColor=GRAY_DARK,
+            alignment=TA_CENTER,
+        ),
+        'cell_header': ParagraphStyle(
+            'cell_header',
+            fontSize=7,
+            leading=9,
+            textColor=WHITE,
+            fontName='Helvetica-Bold',
+            alignment=TA_CENTER,
+        ),
     }
 
 
+def _escape(text):
+    return (
+        str(text if text is not None else "—")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
+def _p(text, styles, style_key="cell"):
+    return Paragraph(_escape(text), styles[style_key])
+
+
+def _logo_image(path, size=1.8 * cm):
+    if not path:
+        return Spacer(size, size)
+    try:
+        return Image(str(path), width=size, height=size)
+    except Exception:
+        return Spacer(size, size)
+
+
 def _header(story, title, subtitle, styles):
-    story.append(Paragraph('OLIVAREZ COLLEGE – TAGAYTAY', styles['title']))
-    story.append(Paragraph('Student Affairs and Services Office (SASO)', styles['subtitle']))
-    story.append(Paragraph(title, ParagraphStyle('h', fontSize=12, textColor=GRAY_DARK, alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=2)))
-    story.append(Paragraph(subtitle, styles['subtitle']))
-    story.append(HRFlowable(width='100%', thickness=1.5, color=OCT_GREEN, spaceAfter=10))
+    left = _logo_image(OCT_LOGO)
+    right = _logo_image(SASO_LOGO)
+
+    center = [
+        Paragraph("OLIVAREZ COLLEGE – TAGAYTAY", styles["title"]),
+        Paragraph(
+            "Student Affairs and Services Office (SASO)",
+            styles["subtitle"],
+        ),
+        Paragraph(
+            _escape(title),
+            ParagraphStyle(
+                "report_title",
+                fontSize=11,
+                leading=14,
+                textColor=GRAY_DARK,
+                alignment=TA_CENTER,
+                fontName="Helvetica-Bold",
+                spaceBefore=2,
+                spaceAfter=2,
+            ),
+        ),
+        Paragraph(_escape(subtitle), styles["subtitle"]),
+    ]
+
+    header_tbl = Table(
+        [[left, center, right]],
+        colWidths=[2.2 * cm, CONTENT_WIDTH - 4.4 * cm, 2.2 * cm],
+    )
+    header_tbl.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("ALIGN", (0, 0), (0, 0), "LEFT"),
+                ("ALIGN", (1, 0), (1, 0), "CENTER"),
+                ("ALIGN", (2, 0), (2, 0), "RIGHT"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
+    story.append(header_tbl)
+    story.append(
+        HRFlowable(
+            width="100%",
+            thickness=1.5,
+            color=OCT_GREEN,
+            spaceBefore=4,
+            spaceAfter=10,
+        )
+    )
 
 
 def _table_style(col_widths, header_cols=None):
     style = [
-        ('BACKGROUND', (0, 0), (-1, 0), OCT_GREEN),
-        ('TEXTCOLOR',  (0, 0), (-1, 0), WHITE),
-        ('FONTNAME',   (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE',   (0, 0), (-1, 0), 8),
-        ('FONTSIZE',   (0, 1), (-1, -1), 8),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [WHITE, GRAY_LIGHT]),
-        ('GRID',       (0, 0), (-1, -1), 0.4, colors.HexColor('#D1D5DB')),
-        ('VALIGN',     (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
-        ('RIGHTPADDING',  (0, 0), (-1, -1), 6),
+        ("BACKGROUND", (0, 0), (-1, 0), OCT_GREEN),
+        ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 7),
+        ("FONTSIZE", (0, 1), (-1, -1), 7),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [WHITE, GRAY_LIGHT]),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#D1D5DB")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
     ]
     return style
 
@@ -82,17 +233,17 @@ def generate_students_pdf(students):
     _header(story, 'Student Records Summary Report', f'Generated: {today}  |  Total: {total}  |  Completed: {completed}  |  Pending: {pending}', styles)
 
     headers = ['#', 'Student ID', 'Name', 'Course', 'Year', 'Email', 'Status']
-    col_w   = [0.6*cm, 2.8*cm, 4.2*cm, 2*cm, 1.2*cm, 5*cm, 2*cm]
-    rows = [headers]
+    col_w   = [0.7*cm, 2.4*cm, 3.4*cm, 2.2*cm, 1.1*cm, 4.4*cm, 2.1*cm]
+    rows = [[_p(h, styles, 'cell_header') for h in headers]]
     for i, s in enumerate(students, 1):
         rows.append([
-            str(i),
-            s.student_id,
-            f'{s.last_name}, {s.first_name}',
-            s.course,
-            f'{s.year_level}',
-            s.email or '—',
-            'Completed' if s.status == 'completed' else 'Pending',
+            _p(str(i), styles, 'cell_center'),
+            _p(s.student_id, styles),
+            _p(f'{s.last_name}, {s.first_name}', styles),
+            _p(s.course, styles),
+            _p(f'{s.year_level}', styles, 'cell_center'),
+            _p(s.email or '—', styles),
+            _p('Completed' if s.status == 'completed' else 'Pending', styles, 'cell_center'),
         ])
 
     tbl = Table(rows, colWidths=col_w, repeatRows=1)
@@ -130,36 +281,39 @@ def generate_discipline_pdf(cases, filters=None):
         by_sev[c.severity] = by_sev.get(c.severity, 0) + 1
         by_sta[c.status]   = by_sta.get(c.status, 0) + 1
 
+    sum_w = CONTENT_WIDTH / 6
     summary_data = [
-        ['Minor', 'Moderate', 'Major', 'Pending', 'Under Review', 'Resolved'],
-        [str(by_sev['minor']), str(by_sev['moderate']), str(by_sev['major']),
-         str(by_sta['pending']), str(by_sta['under_review']), str(by_sta['resolved'])],
+        [_p(h, styles, 'cell_center') for h in
+         ['Minor', 'Moderate', 'Major', 'Pending', 'Under Review', 'Resolved']],
+        [_p(v, styles, 'cell_center') for v in
+         [str(by_sev['minor']), str(by_sev['moderate']), str(by_sev['major']),
+          str(by_sta['pending']), str(by_sta['under_review']), str(by_sta['resolved'])]],
     ]
-    sum_tbl = Table(summary_data, colWidths=[2.8*cm]*6)
+    sum_tbl = Table(summary_data, colWidths=[sum_w] * 6)
     sum_tbl.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (2, 0), colors.HexColor('#FEF3C7')),
         ('BACKGROUND', (3, 0), (5, 0), colors.HexColor('#EFF6FF')),
-        ('FONTNAME',   (0, 0), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE',   (0, 0), (-1, -1), 8),
-        ('ALIGN',      (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN',     (0, 0), (-1, -1), 'MIDDLE'),
         ('GRID',       (0, 0), (-1, -1), 0.4, colors.HexColor('#D1D5DB')),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 3),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 3),
     ]))
     story.append(sum_tbl)
     story.append(Spacer(1, 0.4*cm))
 
     headers = ['Case #', 'Student', 'Violation', 'Severity', 'Status', 'Date']
-    col_w   = [2*cm, 4*cm, 5*cm, 2*cm, 2.5*cm, 2.5*cm]
-    rows = [headers]
+    col_w   = [2.2*cm, 3.0*cm, 5.0*cm, 1.8*cm, 2.2*cm, 2.1*cm]
+    rows = [[_p(h, styles, 'cell_header') for h in headers]]
     for c in cases:
         rows.append([
-            c.case_number,
-            f'{c.student.last_name}, {c.student.first_name}',
-            c.violation,
-            c.severity.capitalize(),
-            STATUS_LABEL.get(c.status, c.status),
-            c.incident_date.strftime('%b %d, %Y'),
+            _p(c.case_number, styles),
+            _p(f'{c.student.last_name}, {c.student.first_name}', styles),
+            _p(c.violation, styles),
+            _p(c.severity.capitalize(), styles, 'cell_center'),
+            _p(STATUS_LABEL.get(c.status, c.status), styles, 'cell_center'),
+            _p(c.incident_date.strftime('%b %d, %Y'), styles, 'cell_center'),
         ])
 
     tbl = Table(rows, colWidths=col_w, repeatRows=1)
@@ -167,7 +321,6 @@ def generate_discipline_pdf(cases, filters=None):
     for i, c in enumerate(cases, 1):
         sev_c = SEVERITY_COLOR.get(c.severity, colors.gray)
         ts.append(('TEXTCOLOR', (3, i), (3, i), sev_c))
-        ts.append(('FONTNAME',  (3, i), (3, i), 'Helvetica-Bold'))
     tbl.setStyle(TableStyle(ts))
     story.append(tbl)
 
@@ -206,14 +359,16 @@ def generate_activities_pdf(activities):
         participations = activity.participations.select_related('student').all()
         if participations:
             headers = ['#', 'Student ID', 'Name', 'Course', 'Year', 'Role']
-            col_w = [0.6*cm, 2.8*cm, 4.5*cm, 2*cm, 1.2*cm, 5.9*cm]
-            rows = [headers]
+            col_w = [0.7*cm, 2.4*cm, 3.6*cm, 2.2*cm, 1.1*cm, 6.3*cm]
+            rows = [[_p(h, styles, 'cell_header') for h in headers]]
             for j, p in enumerate(participations, 1):
                 rows.append([
-                    str(j), p.student.student_id,
-                    f'{p.student.last_name}, {p.student.first_name}',
-                    p.student.course, f'{p.student.year_level}',
-                    p.role or 'Participant',
+                    _p(str(j), styles, 'cell_center'),
+                    _p(p.student.student_id, styles),
+                    _p(f'{p.student.last_name}, {p.student.first_name}', styles),
+                    _p(p.student.course, styles),
+                    _p(f'{p.student.year_level}', styles, 'cell_center'),
+                    _p(p.role or 'Participant', styles),
                 ])
             tbl = Table(rows, colWidths=col_w, repeatRows=1)
             tbl.setStyle(TableStyle(_table_style(col_w)))
@@ -476,17 +631,17 @@ def generate_lost_found_pdf(
 
     col_widths = [
         0.6 * cm,
-        1.8 * cm,
-        2.4 * cm,
-        3.5 * cm,
-        3.5 * cm,
-        3.5 * cm,
-        2.3 * cm,
-        2.3 * cm,
+        1.5 * cm,
+        2.1 * cm,
+        2.8 * cm,
+        2.8 * cm,
+        2.8 * cm,
+        2.0 * cm,
+        2.0 * cm,
     ]
 
     rows = [
-        headers
+        [_p(h, styles, 'cell_header') for h in headers]
     ]
 
     for index, record in enumerate(
@@ -503,34 +658,27 @@ def generate_lost_found_pdf(
         )
 
         rows.append([
-            str(index),
-
-            record.item_type or '—',
-
-            date_filing,
-
-            record.name or '—',
-
-            record.item or '—',
-
-            record.location or '—',
-
-            record.status or '—',
-
-            record.claim_status or '—',
+            _p(str(index), styles, 'cell_center'),
+            _p(record.item_type or '—', styles, 'cell_center'),
+            _p(date_filing, styles, 'cell_center'),
+            _p(record.name or '—', styles),
+            _p(record.item or '—', styles),
+            _p(record.location or '—', styles),
+            _p(record.status or '—', styles, 'cell_center'),
+            _p(record.claim_status or '—', styles, 'cell_center'),
         ])
 
     if len(rows) == 1:
 
         rows.append([
-            '—',
-            '—',
-            '—',
-            'No records',
-            '—',
-            '—',
-            '—',
-            '—',
+            _p('—', styles, 'cell_center'),
+            _p('—', styles, 'cell_center'),
+            _p('—', styles, 'cell_center'),
+            _p('No records', styles),
+            _p('—', styles),
+            _p('—', styles),
+            _p('—', styles, 'cell_center'),
+            _p('—', styles, 'cell_center'),
         ])
 
     table = Table(

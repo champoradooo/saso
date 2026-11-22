@@ -93,23 +93,23 @@ function SummaryRow({
   sub
 }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border/40 last:border-0">
+    <div className="flex items-start justify-between gap-3 py-3 border-b border-border/40 last:border-0">
 
-      <div>
+      <div className="min-w-0 flex-1 pr-2">
 
-        <p className="text-sm font-medium text-foreground">
+        <p className="text-sm font-medium text-foreground leading-snug break-words">
           {label}
         </p>
 
         {sub && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {sub}
           </p>
         )}
 
       </div>
 
-      <span className="text-lg font-bold text-primary">
+      <span className="text-lg font-bold text-primary shrink-0 tabular-nums">
         {value}
       </span>
 
