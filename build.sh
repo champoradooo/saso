@@ -18,3 +18,4 @@ npm run build
 cd ..
 
 python manage.py migrate --noinput
+python manage.py seed_data
