@@ -112,6 +112,7 @@ function FormField({
   form,
   errors,
   set,
+  disabled = false,
 }) {
   return (
     <div className="w-full min-w-0">
@@ -132,9 +133,15 @@ function FormField({
         onChange={(e) =>
           set(id, e.target.value)
         }
+        disabled={disabled}
+        readOnly={disabled}
         className={`w-full ${
           errors[id]
             ? 'border-destructive'
+            : ''
+        } ${
+          disabled
+            ? 'bg-muted/60 cursor-not-allowed opacity-80'
             : ''
         }`}
       />
@@ -710,6 +717,7 @@ function StudentFormModal({
               form={form}
               errors={errors}
               set={set}
+              disabled={isEditing}
             />
 
 
