@@ -96,7 +96,6 @@ const VIOLATION_GROUPS = {
     "Unauthorized absence",
     "Cutting classes",
     "Leaving school premises without permission",
-    "Cheating",
     "Academic dishonesty",
     "Forgery of documents",
     "Unauthorized solicitation",
@@ -124,6 +123,7 @@ const VIOLATION_GROUPS = {
     "Extortion",
     "Serious vandalism",
     "Fraud",
+    "Cheating",
     "Acts punishable under Philippine laws",
   ],
 };
