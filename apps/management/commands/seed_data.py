@@ -150,9 +150,8 @@ class Command(BaseCommand):
     # ── Users ────────────────────────────────────────────────────────────────
     def _seed_users(self):
         users = [
-            ('admin',     'admin1234',     'super_admin', 'System',   'Administrator', 'admin@oct.edu.ph'),
-            ('assistant', 'assistant1234', 'assistant',   'Maria',    'Santos',        'assistant@oct.edu.ph'),
-            ('staff',     'staff1234',     'staff',       'Liza',     'Cruz',          'staff@oct.edu.ph'),
+            ('admin', 'admin1234', 'admin', 'System', 'Administrator', 'admin@oct.edu.ph'),
+            ('staff', 'staff1234', 'staff', 'Liza', 'Cruz', 'staff@oct.edu.ph'),
         ]
         for username, password, role, first, last, email in users:
             if not User.objects.filter(username=username).exists():

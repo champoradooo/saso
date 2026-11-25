@@ -225,11 +225,11 @@ PART 4 — USER ROLES
 ====================================================
 
 Once logged in as admin, you can create other
-user accounts. There are three access levels:
+user accounts. There are two access levels:
 
-  Super Admin  -  Full access to everything
-  Admin        -  Manage students, cases, activities
-  Assistant    -  Limited read/write access
+  Admin  -  Full access, including user management
+  Staff  -  Day-to-day records work (students, cases,
+            activities, reports)
 
 
 ====================================================

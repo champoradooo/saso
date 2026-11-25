@@ -7,7 +7,6 @@ from django.utils.http import (
 )
 from django.utils.encoding import force_bytes, force_str
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.db.models import Q
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -344,26 +343,9 @@ def users_view(request):
 
     if request.method == 'GET':
 
-        if request.user.role == User.ROLE_SUPER_ADMIN:
-
-            users = User.objects.all().order_by(
-                'username'
-            )
-
-        else:
-
-            users = User.objects.filter(
-                Q(id=request.user.id)
-                |
-                Q(
-                    role__in=[
-                        User.ROLE_ASSISTANT,
-                        User.ROLE_STAFF
-                    ]
-                )
-            ).order_by(
-                'username'
-            )
+        users = User.objects.all().order_by(
+            'username'
+        )
 
         return Response(
             UserSerializer(
@@ -446,27 +428,6 @@ def user_detail_view(request, pk):
                     'You cannot delete your own account.'
             },
             status=status.HTTP_400_BAD_REQUEST
-        )
-
-    # -----------------------------------------------------
-    # Admin restrictions
-    # -----------------------------------------------------
-
-    if (
-        request.user.role == User.ROLE_ADMIN
-        and
-        user.role not in {
-            User.ROLE_ASSISTANT,
-            User.ROLE_STAFF
-        }
-    ):
-
-        return Response(
-            {
-                'detail':
-                    'You cannot delete that account.'
-            },
-            status=status.HTTP_403_FORBIDDEN
         )
 
     # -----------------------------------------------------

@@ -52,7 +52,7 @@ npm run preview  # Preview production build
 manage.py                  # Django entry point
 backend/                   # Django project module (settings, urls, wsgi)
 apps/
-  accounts/                # Custom User model (roles: admin, director, assistant)
+  accounts/                # Custom User model (roles: admin, staff)
   students/                # Student, ClearanceRequirement, CounselingRecord models
   discipline/              # DisciplinaryCase model (minor/moderate/major)
   activities/              # Activity + ActivityParticipation models

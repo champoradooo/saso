@@ -243,13 +243,12 @@ You will see the SASO App login page. Use the admin account created earlier:
 
 ## Creating Additional Users
 
-Once logged in as admin, you can create other user accounts through the app's user management section. There are three user roles:
+Once logged in as admin, you can create other user accounts through the app's user management section. There are two user roles:
 
 | Role | Access |
 |------|--------|
-| Super Admin | Full access to everything |
-| Admin | Manage students, cases, activities |
-| Assistant | Limited read/write access |
+| Admin | Full access, including user management |
+| Staff | Day-to-day records work (students, cases, activities, reports) |
 
 ---
 

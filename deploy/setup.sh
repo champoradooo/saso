@@ -26,7 +26,7 @@ venv/bin/python manage.py shell -c "
 from django.contrib.auth import get_user_model
 User = get_user_model()
 if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@oct.edu.ph', 'admin1234', role='super_admin', first_name='System', last_name='Administrator')
+    User.objects.create_superuser('admin', 'admin@oct.edu.ph', 'admin1234', role='admin', first_name='System', last_name='Administrator')
     print('Created admin user')
 else:
     print('Admin user already exists')

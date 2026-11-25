@@ -34,7 +34,7 @@ def _bootstrap_database():
         username="admin",
         email="admin@oct.edu.ph",
         password="admin1234",
-        role="super_admin",
+        role="admin",
         first_name="System",
         last_name="Administrator",
     )

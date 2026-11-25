@@ -48,9 +48,7 @@ const nav = [
 ]
 
 const ROLE_LABELS = {
-  super_admin: 'Super Administrator',
   admin: 'Administrator',
-  assistant: 'Assistant',
   staff: 'Staff',
 }
 
@@ -62,11 +60,8 @@ export default function Sidebar() {
     .trim()
     .toLowerCase()
 
-  // Allow the appropriate administrator accounts to see
-  // the User Management navigation link.
-  const canManageUsers =
-    ['super_admin', 'admin'].includes(role) ||
-    user?.is_superuser === true
+  // Only administrators can manage user accounts.
+  const canManageUsers = role === 'admin'
 
   const displayName =
     [user?.first_name, user?.last_name]
@@ -76,9 +71,7 @@ export default function Sidebar() {
     user?.username ||
     'Current User'
 
-  const displayRole =
-    ROLE_LABELS[role] ||
-    (user?.is_superuser ? 'Super Administrator' : role || 'User')
+  const displayRole = ROLE_LABELS[role] || role || 'User'
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0">

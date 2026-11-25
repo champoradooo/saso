@@ -15,7 +15,7 @@ class ActivityAttendanceTests(TestCase):
             username='admin',
             email='admin@example.com',
             password='admin1234',
-            role='super_admin',
+            role='admin',
             first_name='System',
             last_name='Administrator',
         )

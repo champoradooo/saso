@@ -98,7 +98,7 @@ out = run_console([
     f'venv/bin/python manage.py shell -c "'
     f'from django.contrib.auth import get_user_model; U=get_user_model(); '
     f'U.objects.filter(username=\"admin\").exists() or '
-    f'U.objects.create_superuser(\"admin\",\"admin@oct.edu.ph\",\"admin1234\",role=\"super_admin\",first_name=\"System\",last_name=\"Administrator\")'
+    f'U.objects.create_superuser(\"admin\",\"admin@oct.edu.ph\",\"admin1234\",role=\"admin\",first_name=\"System\",last_name=\"Administrator\")'
     f'"',
 ])
 print('   OKMigrations done')

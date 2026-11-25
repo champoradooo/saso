@@ -13,14 +13,19 @@ import random
 
 User = get_user_model()
 
-# Super admin account
+# Admin account
 if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@oct.edu.ph', 'admin1234', role='super_admin',
-first_name='System', last_name='Administrator')
-    print("Created super admin: admin / admin1234")
+    User.objects.create_superuser(
+        'admin',
+        'admin@oct.edu.ph',
+        'admin1234',
+        role='admin',
+        first_name='System',
+        last_name='Administrator',
+    )
+    print("Created admin: admin / admin1234")
 
 sample_users = [
-    ('assistant', 'assistant1234', 'assistant', 'Maria', 'Santos', 'assistant@oct.edu.ph'),
     ('staff', 'staff1234', 'staff', 'Liza', 'Cruz', 'staff@oct.edu.ph'),
 ]
 

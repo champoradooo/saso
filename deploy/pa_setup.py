@@ -117,7 +117,7 @@ cd {H2}/saso-app && venv/bin/python manage.py shell << 'PYEOF'
 from django.contrib.auth import get_user_model
 U = get_user_model()
 if not U.objects.filter(username='admin').exists():
-    U.objects.create_superuser('admin', 'admin@oct.edu.ph', 'admin1234', role='super_admin', first_name='System', last_name='Administrator')
+    U.objects.create_superuser('admin', 'admin@oct.edu.ph', 'admin1234', role='admin', first_name='System', last_name='Administrator')
     print('Admin created')
 else:
     print('Admin already exists')

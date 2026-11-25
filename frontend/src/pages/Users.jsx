@@ -4,21 +4,22 @@ import { api } from '@/api/client'
 import { useAuth } from '@/context/AuthContext'
 
 const ROLE_LABELS = {
-  super_admin: 'Super Administrator',
   admin: 'Administrator',
-  assistant: 'Assistant',
   staff: 'Staff',
 }
 
+const ROLE_OPTIONS = [
+  { value: 'admin', label: 'Administrator' },
+  { value: 'staff', label: 'Staff' },
+]
+
 function RoleBadge({ role }) {
   const styleMap = {
-    super_admin: 'bg-primary/10 text-primary border-primary/20',
-    admin: 'bg-secondary text-secondary-foreground border-border',
-    assistant: 'bg-sky-50 text-sky-700 border-sky-200',
+    admin: 'bg-primary/10 text-primary border-primary/20',
     staff: 'bg-zinc-100 text-zinc-700 border-zinc-200',
   }
 
-  const Icon = role === 'super_admin' ? ShieldCheck : Shield
+  const Icon = role === 'admin' ? ShieldCheck : Shield
 
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${styleMap[role] ?? styleMap.staff}`}>
@@ -28,25 +29,13 @@ function RoleBadge({ role }) {
   )
 }
 
-function AddUserModal({ currentRole, onClose, onCreated }) {
-  const roleOptions = currentRole === 'super_admin'
-    ? [
-        { value: 'admin', label: 'Administrator' },
-        { value: 'assistant', label: 'Assistant' },
-        { value: 'staff', label: 'Staff' },
-        { value: 'super_admin', label: 'Super Administrator' },
-      ]
-    : [
-        { value: 'assistant', label: 'Assistant' },
-        { value: 'staff', label: 'Staff' },
-      ]
-
+function AddUserModal({ onClose, onCreated }) {
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
     username: '',
     email: '',
-    role: roleOptions[0]?.value ?? 'assistant',
+    role: 'staff',
     password: '',
   })
   const [loading, setLoading] = useState(false)
@@ -147,7 +136,7 @@ function AddUserModal({ currentRole, onClose, onCreated }) {
               onChange={set('role')}
               className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
             >
-              {roleOptions.map((option) => (
+              {ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -259,12 +248,12 @@ export default function Users() {
   }
 
   useEffect(() => {
-    if (currentUser?.role === 'super_admin' || currentUser?.role === 'admin') {
+    if (currentUser?.role === 'admin') {
       fetchUsers()
     }
   }, [currentUser])
 
-  if (!['super_admin', 'admin'].includes(currentUser?.role)) {
+  if (currentUser?.role !== 'admin') {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[60vh]">
         <div className="text-center">
@@ -285,9 +274,7 @@ export default function Users() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">User Management</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {currentUser?.role === 'admin'
-              ? 'Manage assistant and staff accounts'
-              : 'Manage system accounts and access roles'}
+            Manage admin and staff accounts
           </p>
         </div>
         <button
@@ -322,7 +309,6 @@ export default function Users() {
               {users.map((u) => {
                 const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || '—'
                 const isSelf = u.id === currentUser?.id
-                const canDelete = currentUser?.role === 'super_admin' || ['assistant', 'staff'].includes(u.role)
                 return (
                   <tr key={u.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-3.5 font-medium text-foreground">
@@ -339,7 +325,7 @@ export default function Users() {
                       <RoleBadge role={u.role} />
                     </td>
                     <td className="px-5 py-3.5 text-right">
-                      {!isSelf && canDelete && (
+                      {!isSelf && (
                         <button
                           onClick={() => setDeleteTarget(u)}
                           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
@@ -359,7 +345,6 @@ export default function Users() {
 
       {showAdd && (
         <AddUserModal
-          currentRole={currentUser?.role}
           onClose={() => setShowAdd(false)}
           onCreated={() => {
             setShowAdd(false)
